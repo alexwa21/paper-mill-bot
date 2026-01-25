@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlmodel
+psycopg2-binary
+twilio
+python-multipart
+streamlit
+pandas
+requests
