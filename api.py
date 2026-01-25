@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Response
 from models import create_db_and_tables, engine, Order, Product
 from sqlmodel import Session, select
 from twilio.twiml.messaging_response import MessagingResponse
@@ -18,10 +18,10 @@ def home():
 async def reply_whatsapp(Body: str = Form(), From: str = Form()):
     customer_phone = From.replace("whatsapp:", "")
     
-    # 1. Clean the incoming message (lowercase, remove spaces)
+    # 1. Clean the incoming message
     msg = Body.lower().strip()
     
-    # 2. GREETING LOGIC: Check if user said Hi/Hello
+    # 2. GREETING LOGIC
     if msg in ["hi", "hello", "hey", "start", "menu"]:
         response_text = (
             "👋 *Welcome to Paper Mill Bot!*\n\n"
@@ -31,7 +31,7 @@ async def reply_whatsapp(Body: str = Form(), From: str = Form()):
             "Kraft 120 50 500"
         )
     
-    # 3. ORDER LOGIC: If not greeting, try to process as order
+    # 3. ORDER LOGIC
     else:
         parts = Body.split()
         if len(parts) < 4:
@@ -44,7 +44,6 @@ async def reply_whatsapp(Body: str = Form(), From: str = Form()):
                 qty = int(parts[3])
                 
                 with Session(engine) as session:
-                    # Validate against Database Rules
                     rule = session.exec(select(Product).where(Product.grade == grade).where(Product.gsm == gsm)).first()
                     
                     if not rule:
@@ -52,7 +51,6 @@ async def reply_whatsapp(Body: str = Form(), From: str = Form()):
                     elif not (rule.min_size <= size <= rule.max_size):
                         response_text = f"❌ Error: For {grade} {gsm}, size must be between {rule.min_size} and {rule.max_size}."
                     else:
-                        # Save the Order
                         order = Order(customer_phone=customer_phone, paper_grade=grade, gsm=gsm, reel_size=size, quantity_kg=qty, status="Approved")
                         session.add(order)
                         session.commit()
@@ -60,7 +58,7 @@ async def reply_whatsapp(Body: str = Form(), From: str = Form()):
             except ValueError:
                 response_text = "❌ Error: GSM, Size, and Qty must be numbers."
 
-    # 4. Send Reply back to WhatsApp
+    # 4. RETURN XML RESPONSE (Crucial Fix)
     resp = MessagingResponse()
     resp.message(response_text)
-    return str(resp)
+    return Response(content=str(resp), media_type="application/xml")
