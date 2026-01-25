@@ -2,10 +2,10 @@ from sqlmodel import SQLModel, Field, create_engine
 from typing import Optional
 import os
 
-# 1. DATABASE SETUP
-# We use a special setting here to prevent the "Table already exists" crash
+# 1. DATABASE MODELS
 class Product(SQLModel, table=True):
-    __table_args__ = {"extend_existing": True}  # <--- THIS IS THE FIX
+    __tablename__ = "products"  # <--- Plural name (Safe)
+    __table_args__ = {"extend_existing": True} 
     id: Optional[int] = Field(default=None, primary_key=True)
     grade: str
     gsm: int
@@ -13,7 +13,8 @@ class Product(SQLModel, table=True):
     max_size: int
 
 class Order(SQLModel, table=True):
-    __table_args__ = {"extend_existing": True}  # <--- THIS IS THE FIX
+    __tablename__ = "orders"   # <--- Plural name (Safe from 'ORDER' keyword)
+    __table_args__ = {"extend_existing": True}
     id: Optional[int] = Field(default=None, primary_key=True)
     customer_phone: str
     paper_grade: str
@@ -23,14 +24,14 @@ class Order(SQLModel, table=True):
     status: str = "Pending"
 
 # 2. CONNECTION ENGINE
-# We check if we are on the cloud (Render/Streamlit) or local
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if not DATABASE_URL:
-    # Fallback for local testing
-    DATABASE_URL = "sqlite:///database.db"
+def get_engine(db_url=None):
+    if not db_url:
+        db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        db_url = "sqlite:///database.db"
+    return create_engine(db_url)
 
-# Create the engine
-engine = create_engine(DATABASE_URL)
+engine = get_engine()
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
