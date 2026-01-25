@@ -1,9 +1,11 @@
-import os
+from sqlmodel import SQLModel, Field, create_engine
 from typing import Optional
-from sqlmodel import Field, SQLModel, create_engine, Session
-from datetime import datetime
+import os
 
+# 1. DATABASE SETUP
+# We use a special setting here to prevent the "Table already exists" crash
 class Product(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}  # <--- THIS IS THE FIX
     id: Optional[int] = Field(default=None, primary_key=True)
     grade: str
     gsm: int
@@ -11,6 +13,7 @@ class Product(SQLModel, table=True):
     max_size: int
 
 class Order(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}  # <--- THIS IS THE FIX
     id: Optional[int] = Field(default=None, primary_key=True)
     customer_phone: str
     paper_grade: str
@@ -18,15 +21,16 @@ class Order(SQLModel, table=True):
     reel_size: int
     quantity_kg: int
     status: str = "Pending"
-    timestamp: datetime = Field(default_factory=datetime.now)
 
-# CONNECT TO CLOUD DB
-db_url = os.environ.get("DATABASE_URL", "postgresql://postgres:gJ3+YLv&H6VAhz@db.crgbhzecdpodnaxjpsom.supabase.co:5432/postgres")
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+# 2. CONNECTION ENGINE
+# We check if we are on the cloud (Render/Streamlit) or local
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    # Fallback for local testing
+    DATABASE_URL = "sqlite:///database.db"
 
-engine = create_engine(db_url)
+# Create the engine
+engine = create_engine(DATABASE_URL)
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
-#DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:gJ3+YLv&H6VAhz/@db.crgbhzecdpodnaxjpsom.supabase.co:5432/postgres")
