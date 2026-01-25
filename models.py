@@ -1,10 +1,8 @@
-# models.py (Updated for Production)
 import os
 from typing import Optional
 from sqlmodel import Field, SQLModel, create_engine, Session
 from datetime import datetime
 
-# (Keep your Class definitions for Product and Order exactly the same)
 class Product(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     grade: str
@@ -22,15 +20,13 @@ class Order(SQLModel, table=True):
     status: str = "Pending"
     timestamp: datetime = Field(default_factory=datetime.now)
 
-# --- THE CHANGE: Real DB Connection ---
-# If we are on the cloud, get the secure password. If local, use sqlite for testing.
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:gJ3+YLv&H6VAhz/@db.crgbhzecdpodnaxjpsom.supabase.co:5432/postgres")
+# CONNECT TO CLOUD DB
+db_url = os.environ.get("DATABASE_URL", "postgresql://postgres:gJ3+YLv&H6VAhz@db.crgbhzecdpodnaxjpsom.supabase.co:5432/postgres")
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-# Fix for some postgres drivers requiring 'postgresql://' instead of 'postgres://'
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-engine = create_engine(DATABASE_URL)
+engine = create_engine(db_url)
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+#DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:gJ3+YLv&H6VAhz/@db.crgbhzecdpodnaxjpsom.supabase.co:5432/postgres")
